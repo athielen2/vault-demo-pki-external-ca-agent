@@ -1,0 +1,73 @@
+exit_after_auth = false
+pid_file = "./pidfile"
+
+vault {
+  address = "${vault_addr}"
+  retry {
+    num_retries = 5
+  }
+}
+
+auto_auth {
+   method "approle" {
+       mount_path = "auth/${approle_path}"
+       config = {
+           role_id_file_path = "/home/ubuntu/roleid"
+           secret_id_file_path = "/home/ubuntu/secretid"
+           remove_secret_id_file_after_reading = false
+       }
+   }
+
+  sink {
+    type = "file"
+    config = {
+      path = "./agent-token"
+    }
+  }
+}
+
+cache {
+  use_auto_auth_token = true
+}
+
+listener "tcp" {
+  address = "127.0.0.1:8100"
+  tls_disable = true
+}
+
+pki_external_ca "web-tls" {
+  mount_path     = "${pki_external_ca_mount_path}"
+  role           = "${pki_external_ca_role}"
+  challenge_type = "http-01"
+
+  identifiers {
+    dns = ["${client_name}"]
+  }
+
+  http_01 {
+    challenge_path = "/var/www/html/.well-known/acme-challenge"
+  }
+
+  destination {
+    path       = "/home/ubuntu"
+    pem_bundle = false
+  }
+}
+
+template {
+  destination = "/home/ubuntu/nginx-cert.pem"
+  contents    = <<-EOT
+    {{ with pkiCertExternalCa "web-tls" -}}
+    {{ .Certificate }}
+    {{- end }}
+  EOT
+}
+
+template {
+  destination = "/home/ubuntu/nginx-cert.key"
+  contents    = <<-EOT
+    {{ with pkiCertExternalCa "web-tls" -}}
+    {{ .PrivateKey }}
+    {{- end }}
+  EOT
+}
