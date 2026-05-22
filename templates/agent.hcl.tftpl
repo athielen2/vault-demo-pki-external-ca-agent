@@ -3,36 +3,20 @@ pid_file = "./pidfile"
 
 vault {
   address = "${vault_addr}"
+  namespace = "${vault_namespace}"
   retry {
     num_retries = 5
   }
 }
 
 auto_auth {
-   method "approle" {
-       mount_path = "auth/${approle_path}"
-       config = {
-           role_id_file_path = "/home/ubuntu/roleid"
-           secret_id_file_path = "/home/ubuntu/secretid"
-           remove_secret_id_file_after_reading = false
-       }
+   method "aws" {
+     mount_path = "auth/${aws_auth_path}"
+     config = {
+       type = "iam"
+       role = "${aws_auth_role}"
+     }
    }
-
-  sink {
-    type = "file"
-    config = {
-      path = "./agent-token"
-    }
-  }
-}
-
-cache {
-  use_auto_auth_token = true
-}
-
-listener "tcp" {
-  address = "127.0.0.1:8100"
-  tls_disable = true
 }
 
 pki_external_ca "web-tls" {
@@ -55,19 +39,20 @@ pki_external_ca "web-tls" {
 }
 
 template {
-  destination = "/home/ubuntu/nginx-cert.pem"
+  destination = "/home/ubuntu/nginx-cert.crt"
   contents    = <<-EOT
-    {{ with pkiCertExternalCa "web-tls" -}}
-    {{ .Certificate }}
-    {{- end }}
+    {{- with pkiCertExternalCa "web-tls" -}}
+    {{- .Cert -}}
+    {{- end -}}
   EOT
 }
 
 template {
   destination = "/home/ubuntu/nginx-cert.key"
+  command     = "systemctl reload nginx"
   contents    = <<-EOT
-    {{ with pkiCertExternalCa "web-tls" -}}
-    {{ .PrivateKey }}
-    {{- end }}
+    {{- with pkiCertExternalCa "web-tls" -}}
+    {{- .Key -}}
+    {{- end -}}
   EOT
 }
