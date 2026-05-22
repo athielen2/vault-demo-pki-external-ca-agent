@@ -3,8 +3,9 @@ variable "vault_addr" {
   default = "localhost:8200"
 }
 
-variable "ca_cert_abs_path" {
-  type = string
+variable "vault_namespace" {
+  type    = string
+  default = ""
 }
 
 variable "region" {
@@ -15,16 +16,24 @@ variable "prefix" {
   type = string
 }
 
-variable "key_pair_name" {}
-
-#subnet-06f3a182c113a9eb9
-
-variable "security_group_ids" {
-  description = "Security group to deploy the servers into (you can retrieve this from the hvd module)"
+variable "key_pair_name" {
+  type = string
 }
 
 variable "subnet_id" {
+  type        = string
   description = "Subnet to deploy the servers into (you can retrieve this from the hvd module)"
+}
+
+variable "ssh_ingress" {
+  type        = list(string)
+  description = "CIDR blocks allowed to access SSH (port 22)."
+}
+
+variable "http_tls_ingress" {
+  type        = list(string)
+  description = "CIDR blocks allowed to access HTTP/HTTPS (ports 80 and 443)."
+  default     = ["0.0.0.0/0"]
 }
 
 variable "top_level_domain_name" {
@@ -36,20 +45,6 @@ variable "client_dns" {
   description = "Domain Name for Agent server. DNS should be the same top_level_domain_name."
 }
 
-variable "ami_owner" {}
-
-variable "ami_name" {}
-
 variable "acme_email_contacts" {
   type = list(string)
-}
-
-variable "allowed_domains" {
-  type    = list(string)
-  default = ["example.com"]
-}
-
-variable "allowed_bare_domains" {
-  type    = list(string)
-  default = ["bare_domains", "subdomains"]
 }
